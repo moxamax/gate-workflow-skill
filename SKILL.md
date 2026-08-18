@@ -26,8 +26,10 @@ description: 以人工核准逐步編排需求釐清、GitHub issue、Gate branc
 
 專案未指定命名時，預設使用：
 
-- branch：`issue/<編號>-<英文簡稱>`
-- 相鄰 worktree：`../<repo 名稱>-issue-<編號>`
+```sh
+git worktree add "../<repo 名稱>-issue-<編號>" \
+  -b "issue/<編號>-<英文簡稱>" "<預設 branch>"
+```
 
 只有使用者明確要求時才建立或沿用 worktree。新 worktree 缺少 runtime 時，依專案文件建立。
 
@@ -53,6 +55,7 @@ description: 以人工核准逐步編排需求釐清、GitHub issue、Gate branc
 
 收到 `PASS` 後，回報可以進下一個 Gate 並停止。收到其他結論後，回報需處理的問題並停止；
 等使用者明確指示後，才由 Agent A 處理被指出的部分。
+任何結論都不自動觸發下一步。
 
 ## 5. 完成 issue
 
