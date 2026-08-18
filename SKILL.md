@@ -29,6 +29,7 @@ description: 以人工核准逐步編排需求釐清、GitHub issue、Gate branc
 ```sh
 git worktree add "../<repo 名稱>-issue-<編號>" \
   -b "issue/<編號>-<英文簡稱>" "<預設 branch>"
+git -C "../<repo 名稱>-issue-<編號>" submodule update --init --recursive
 ```
 
 只有使用者明確要求時才建立或沿用 worktree。新 worktree 缺少 runtime 時，依專案文件建立。
