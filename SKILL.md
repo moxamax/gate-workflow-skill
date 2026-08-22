@@ -48,8 +48,8 @@ git -C "../<repo 名稱>-issue-<編號>" submodule update --init --recursive
 2. 執行 issue 所列且與改動相稱的測試。改到可執行行為且有適用的真實環境 E2E 時，E2E
    必須成功；失敗就找出根因、修正並重跑。外部阻礙使適用驗證無法完成時，明確回報尚未完成。
 3. 只 stage 本 Gate 的明確路徑並 commit。Gate 可以有多個 commits；交接前 worktree 必須乾淨。
-4. 交接：Gate 目標、diff 起點、最新 commit、改動檔案、實際驗證與結果，以及交給驗收者的
-   一句話 prompt。
+4. 交接：Gate 目標、diff 起點、最新 commit、改動檔案、實際驗證與結果，以及 **交給驗收者的**  
+   **一句話 prompt**。
 5. 停止，等待使用者要求驗收。
 
 Gate 1 的 diff 起點是 issue branch 的起點；後續 Gate 是上一個 PASS commit。開發完成不自動
