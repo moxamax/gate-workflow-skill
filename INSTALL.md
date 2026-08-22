@@ -62,9 +62,11 @@ Orca 會自動掃描 Claude、Codex、Agent Skills 與 OMP（`~/.omp/agent/skill
 > 使用 gate-workflow 準備目前接力點，完成後停止並等我明確指示下一步。
 
 接下來每個階段（釐清需求 → 建 GitHub issue → 開 worktree → 開發一個 Gate →
-另一個 agent 獨立驗收 → 合併收尾）它都會做完就停，等你明確說下一步才繼續。
-驗收結果只會是四種之一：`PASS`（過關）、`TRIM`（做太多）、`BLOCK`（有問題卡住）、
-`ADD`（還少東西）。
+另一個 agent 獨立驗收 → 本機合併與清理 → push 並關閉 issue）它都會做完就停，等你明確說
+下一步才繼續。本機完成不會自動 push。
+
+驗收結果只會是三種之一：`PASS`（已經夠了）、`TRIM`（做太多）、`REWORK`（必要行為缺少、
+錯誤或驗證失敗）。
 
 ## 更新與移除
 
