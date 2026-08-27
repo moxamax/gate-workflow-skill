@@ -1,7 +1,9 @@
 # 安裝說明（給不熟技術的使用者）
 
 這份 skill 是一套「工作流程說明書」。安裝之後，你在 Orca 這類 ADE 裡跑的 AI coding
-agent（Claude Code、Codex⋯）就會照著它一步一步做事，而且每個接力點都會停下來等你點頭。
+agent（Claude Code、Codex⋯）就會照著它一步一步做事。你核准開始或續作目前 Gate 並指定與
+Agent A 不同類型的 Agent B 後，開發、獨立驗收、合理退件修正與下一 Gate 會自動接力；遇到
+停止條件才回來問你。
 
 安裝本身只是「把一個檔案放到正確的資料夾」，下面兩種方法擇一即可。
 
@@ -59,14 +61,19 @@ Orca 會自動掃描 Claude、Codex、Agent Skills 與 OMP（`~/.omp/agent/skill
 
 在 Orca 裡開好你的專案，對 agent 說：
 
-> 使用 gate-workflow 準備目前接力點，完成後停止並等我明確指示下一步。
+> 使用 gate-workflow 準備目前接力點；開始 Gate 後自動開發、獨立驗收與處理退件，直到最後
+> PASS 或停止條件。Agent B 使用 Claude。
 
-接下來每個階段（釐清需求 → 建 GitHub issue → 開 worktree → 開發一個 Gate →
-另一個 agent 獨立驗收 → 本機合併與清理 → push 並關閉 issue）它都會做完就停，等你明確說
-下一步才繼續。本機完成不會自動 push。
+需求釐清、建立 issue、開始 Gate 1 與最後結案仍需要你明確核准。開始或續作目前 Gate 時，
+你也要指定 Agent B 是哪種 agent，或指定一個既有 Orca agent terminal。A 與 B 必須是不同
+agent 類型：例如 A 是 Codex，B 可用 Claude；另一個 Codex session 或 model 仍不合格。之後
+agent 會自動完成目前 Gate、交給 B 獨立驗收、處理合理的 `TRIM`／`REWORK`，並在 `PASS` 後
+接續下一 Gate。本機完成不會自動 push。
 
 驗收結果只會是三種之一：`PASS`（已經夠了）、`TRIM`（做太多）、`REWORK`（必要行為缺少、
-錯誤或驗證失敗）。
+錯誤或驗證失敗）。同一 Gate 第二次連續 `REWORK` 時會先做根因分析；第三次連續 `REWORK`，
+會停止自動返工，整理證據後請你決定，避免無限循環。其他 `TRIM`／`REWORK` 由 agent 自動接受
+與處理，盡量不打斷你。
 
 ## 更新與移除
 

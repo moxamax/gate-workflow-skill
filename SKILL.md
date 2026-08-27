@@ -1,8 +1,8 @@
 ---
 name: gate-workflow
-description: 以人工核准編排需求釐清、GitHub issue、Gate branch／worktree、開發、獨立驗收與結案。當使用者以 backlog、issue 或 Gate 管理工作，或要求草擬／核准 issue、開始／續作／驗收 Gate、處理 PASS／TRIM／REWORK、合併、push 或關閉 issue 時使用；PASS 後自動接續下一 Gate，最後一個 PASS 後詢問是否完整收尾。
+description: 以人工核准 issue 啟動與結案，並由使用者指定 Agent B，在 Gate 內自動編排 branch／worktree、開發、獨立驗收與返工。當使用者以 backlog、issue 或 Gate 管理工作，或要求草擬／核准 issue、implement／實作 issue、開始／續作 Gate、處理 PASS／TRIM／REWORK、合併、push 或關閉 issue 時使用；開始或續作目前 Gate 後自動接力至最後 PASS 或停止條件。
 ---
-# Ticket／Gate 人工接力
+# Ticket／Gate 自動驗收接力
 
 先讀目前 repo 的 agent instructions、GitHub issue 與本次 Gate 直接相關的文件。專案指令決定
 命名、必要測試、驗收判準與 Git 邊界；未規定的部分才使用本技能的預設值。
@@ -12,8 +12,9 @@ description: 以人工核准編排需求釐清、GitHub issue、Gate branch／wo
 
 一張 issue 使用同一個 branch／worktree 完成所有 Gates。GitHub issue 是 Gate 進度的唯一紀錄。
 協調者管理 issue 狀態與接力，開發者只實作目前 Gate，驗收者只驗收。驗收者必須是未參與
-該 Gate 開發的另一個 agent／session。除 PASS 後的自動接續外，一次只處理目前接力點；需要
-使用者決定時停止。
+該 Gate 開發的另一種 agent 且使用另一個 session；不同 model 或不同 session 的同一種 agent
+不算獨立，例如 Codex 不得同時擔任 Agent A 與 Agent B。使用者開始或續作目前 Gate 後，開發、
+獨立驗收、合理退件修正與下一 Gate 自動接力；只有本技能列明的停止條件需要使用者決定。
 
 ## 1. 從需求到 issue
 
@@ -24,14 +25,21 @@ description: 以人工核准編排需求釐清、GitHub issue、Gate branch／wo
 3. Issue 內文以 checkbox 記錄各 Gate；預留 PASS commit。只有使用者明確核准後才建立
    GitHub issue。建立後停止。
 
-已有 issue 時，讀取 issue 與留言，找出第一個未勾選的 Gate 及上一個 PASS commit，回報目前
-狀態後停止，等待開始或續作 Gate 的指示。
+已有 issue 時，讀取 issue 與留言，找出第一個未勾選的 Gate 及上一個 PASS commit。若使用者
+只要求準備或查詢狀態，回報後停止；若同時要求 `implement issue #<編號>`、實作、開始或續作，
+視為明確開始目前 Gate，直接進入下節，不在狀態回報後停止。
 
 ## 2. 開始或續作 Gate
 
-使用者明確要求開始 Gate 1 時，授權同時建立或沿用該 issue 的 branch／worktree；不再為
-worktree 另問一次。開始前先確認預設 branch、既有 worktree、同名 branch／路徑與未提交
-變更，保留使用者或來源不明的變更，不帶入 issue。
+使用者明確要求開始或續作目前 Gate 時，必須同時指定 Agent B。可指定 agent 類型（例如
+Codex／Claude；每次驗收開新 session）或可唯一辨識的既有 agent session／Orca terminal。
+Agent B 的類型必須與 Agent A 不同；指定既有目標時也先確認其 agent 類型。未指定或類型相同時，
+只請使用者指定另一種 Agent B 並停止，不開始開發。把 A、B 類型及 B 的指定方式記錄為 issue
+留言，並沿用至整張 issue 完成；除非使用者另行指定，不自行更換 B。
+
+開始 Gate 1 同時授權建立或沿用該 issue 的 branch／worktree；不再為 worktree 另問一次。
+開始前先確認預設 branch、既有 worktree、同名 branch／路徑與未提交變更，保留使用者或來源
+不明的變更，不帶入 issue。
 
 專案未指定命名時，預設使用：
 
@@ -43,23 +51,48 @@ git -C "../<repo 名稱>-issue-<編號>" submodule update --init --recursive
 
 新 worktree 缺少 runtime 時，依專案文件建立。後續 Gates 沿用同一個 branch／worktree。
 
+若目前環境是 Orca，建立或沿用 worktree 後必須完成以下動作，才算開始 Gate：
+
+1. 使用 `$orca-cli` 的即時指引，以專案規定的 branch 與路徑建立或解析 Orca 管理的
+   issue worktree，並讓 Orca 顯示／切換到該 worktree。當 Orca 的建立介面無法同時滿足專案
+   指定的 branch 與路徑時，先依專案命名規則以 `git worktree add` 建立，再讓 Orca 以 branch
+   或絕對路徑解析它；這是同一次自動流程，不另外請使用者操作。
+2. 使用 `$orchestration` 的即時指引建立或沿用 Run，建立目前 Gate 的 development Task，
+   並以該 issue worktree 的完整 id／絕對路徑啟動或派送 Agent A。若指令從主 worktree
+   發出，協調者留在原處監督，Agent A 由 issue worktree 內的 Orca terminal 執行開發。
+3. 派送前核對 Agent A terminal 所屬的 worktree id、工作目錄與 branch 都是這張 issue 的
+   worktree。主 worktree 繼續留在預設 branch；從主 worktree 使用 `git -C` 執行開發，不算
+   已切到 issue worktree。
+
+若 Orca 無法把 Agent A 放在正確的 issue worktree，在修改檔案前停止並回報。後續 Gate 與
+返工都沿用同一個 Orca worktree，不建立第二個 issue worktree。
+
 開發者接著：
 
 1. 只實作目前 Gate，不預做後續 Gate。
 2. 執行 issue 所列且與改動相稱的測試。改到可執行行為且有適用的真實環境 E2E 時，E2E
    必須成功；失敗就找出根因、修正並重跑。外部阻礙使適用驗證無法完成時，明確回報尚未完成。
 3. 只 stage 本 Gate 的明確路徑並 commit。Gate 可以有多個 commits；交接前 worktree 必須乾淨。
-4. 交接：Gate 目標、diff 起點、最新 commit、改動檔案、實際驗證與結果，以及 **交給驗收者的**  
-   **一句話 prompt**。
-5. 停止，等待使用者要求驗收。
+4. 建立驗收交接資料：Gate 目標、diff 起點、受驗 commit、改動檔案、實際驗證與結果，以及
+   **交給驗收者的一句話 prompt**。
+5. 立即依第 3 節把交接資料交給獨立驗收者並等待結論，不再要求使用者下達驗收指示。
 
-Gate 1 的 diff 起點是 issue branch 的起點；後續 Gate 是上一個 PASS commit。開發完成不自動
-啟動驗收。
+Gate 1 的 diff 起點是 issue branch 的起點；後續 Gate 是上一個 PASS commit。
 
 ## 3. 獨立驗收
 
-只有使用者明確要求驗收目前 Gate 時才開始。驗收者必須是另一個 agent／session；若無法取得
-獨立驗收者，回報後停止，不得由開發者切換身份驗收自己。
+每次開發或返工交接完成後，自動啟動使用者指定的 Agent B 驗收目前 Gate。若使用者指定 agent
+類型，每次驗收建立該類型的新 session；若指定既有 session／terminal，使用該唯一目標。若 B
+與 A 是同一種 agent、曾參與目前 Gate 開發、無法取得、目標不再唯一，或指定的既有目標不在
+該 issue worktree，回報後停止並請使用者重新指定，不自行替換。
+
+若目前環境是 Orca，協調者處理 Agent A 的 `worker_done` 後，先依 `$orchestration` 的即時
+指引釋放 Agent A worker，再建立 review Task，並以同一個 issue worktree 的完整 id／絕對路徑
+啟動獨立的 Agent B。
+派送前核對 Agent B terminal 所屬的 worktree 與 Agent A 相同，不可從主 worktree 的
+`active`／`current` 推測。等待 Agent B 的 `worker_done` 並依即時指引釋放 Agent B worker；
+不得用非 Orca 的協作工具冒充 Orca orchestration。其他環境使用其可用的獨立
+agent／session 機制。無法取得獨立驗收者時回報後停止，不得由開發者切換身份驗收自己。
 
 驗收者只讀 issue、issue 留言、目前 Gate、這次 diff 與必要的相關代碼，並依 repo 的專案現實、使用者要求、實際風險、成本與效益判斷是否已是合理實作。可以重跑必要的針對性驗證；不必重跑開發者的全部測試，也不預設重跑會登入外部服務或寫入正式資料的 E2E。
 
@@ -70,32 +103,46 @@ Gate 1 的 diff 起點是 issue branch 的起點；後續 Gate 是上一個 PASS
 - `REWORK`：必要行為缺少、錯誤或驗證失敗；明確指出問題與證據，不提供實作方案。
 
 一個結論可以列出多個直接相關的問題。忽略 nice-to-have、未來重構與無關觀察。回報後停止；
-`PASS` 回報本身授權協調者依下一節記錄結果並接續；`TRIM`／`REWORK` 不自動觸發 issue 寫入
-或修正。
+`PASS`、`TRIM`、`REWORK` 都授權協調／開發 agent 依下一節記錄並接續。使用 Orca 時，三種
+結論都代表 review Task 已成功完成，`worker_done` 的 outcome 應為 `succeeded`；結論寫在訊息
+主旨或內文，不把 `REWORK` 誤報成 worker 執行失敗。
 
 ## 4. 記錄結論與接續 Gate
 
-協調／開發 agent（Agent A）收到可明確對應目前 Gate 與受驗 commit 的獨立驗收結論後：
+協調者收到可明確對應目前 Gate 與受驗 commit 的獨立驗收結論後：
 
 - `PASS`：直接勾選目前 Gate，並在 issue 內文記錄通過時的受驗 commit，不再等待使用者接受。
   Issue 更新失敗時停止並回報；更新成功且仍有未完成 Gate 時，立即把第一個未勾選 Gate
   當成目前 Gate，沿用同一 branch／worktree，依第 2 節開始開發；完成、驗證、commit 與交接
-  後才停止等待驗收，不另問使用者是否開始。
+  後自動再次驗收，不另問使用者是否開始。
   若這是最後一個 Gate，詢問使用者是否執行第 5 節的完整結案收尾，然後停止等待答覆。
-- `TRIM`／`REWORK`：先回報結論並停止。只有使用者明確接受後，Gate 才保持未勾選，且把
-  已接受的問題寫成 issue 留言。
+- `TRIM`／`REWORK`：Gate 保持未勾選，把結論、受驗 commit、直接問題與證據寫成 issue 留言，
+  接著依下列退件迴圈處理，不等待使用者接受。
 
 開發者處理非 PASS 結論時，先核對問題是否確實屬於目前 Gate。若不合理，回報理由後停止。
 合理就只處理 issue 留言列出的問題。處理 `REWORK` 前，先判定問題的直接原因、影響範圍及
 既有驗證未攔截的原因，並在下一次交接中附上判定證據；證據不足時，明確回報尚未確定之處。
 
 若問題涉及高風險或嚴重缺陷（如安全、資安、資料損失、正式環境或核心功能）、顯示流程性
-缺口、與既有問題相似，或同一 Gate 收到第二次已接受且確認合理的 `REWORK`，則在再次修改前
+缺口、與既有問題相似，或同一 Gate 收到第二次連續且確認合理的 `REWORK`，則在再次修改前
 進行無責備的根因分析，並把已確認的原因與促成因素、證據、既有驗證漏接原因及預防再發措施
 記錄為 issue 留言。分析深度與實際風險、成本及效益相稱。
 
 根因分析不擴大目前 Gate 的實作範圍；新增的預防措施若超出 issue 留言列出的問題，回報並等待
-使用者決定。完成適用驗證、commit 與交接後停止，等待重新驗收。
+使用者決定。完成適用驗證、commit 與交接後，自動重新驗收。
+
+### 連續 REWORK 熔斷
+
+協調者按同一 Gate 的驗收順序記錄連續 `REWORK` 次數；`PASS`、`TRIM` 或進入下一 Gate 後歸零。
+`TRIM` 與未達熔斷條件的 `REWORK` 都自動接受、記錄、處理並重新驗收：
+
+- 第一次 `REWORK`：依前述規則自動處理。
+- 第二次連續 `REWORK`：完成前述根因分析後，允許一次有證據支持的修正與重新驗收。
+- 第三次連續 `REWORK`：立即停止自動返工。回報每次受驗 commit、退件問題、已做修正、驗證、
+  根因分析與仍未確定之處，等待使用者決定是修改 Gate／issue、指定處理方向或終止工作。
+
+同一問題在根因分析後再次出現，視為已達停止條件，不以改寫程式、換驗收者或拆成新問題重置
+計數。驗收結論無法明確對應目前 Gate 與受驗 commit 時也停止，不把不確定結論帶入自動返工。
 
 ## 5. 結案收尾
 

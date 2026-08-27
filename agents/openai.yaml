@@ -1,4 +1,4 @@
 interface:
-  display_name: "GitHub Gate 手動接力"
-  short_description: "逐步核准 GitHub issue 的 Gate 開發、獨立驗收、合併與清理"
-  default_prompt: "使用 $gate-workflow 準備目前接力點，完成後停止並等待我明確指示下一步。"
+  display_name: "GitHub Gate 自動驗收接力"
+  short_description: "人工核准啟動與結案，自動完成 Gate 開發、驗收與返工"
+  default_prompt: "使用 $gate-workflow implement 已核准的 issue；指定與 Agent A 不同類型的 Agent B 後，在 issue worktree 執行 Agent A／B，自動開發、獨立驗收與處理退件，直到最後 PASS 或停止條件。"
