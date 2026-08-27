@@ -51,20 +51,22 @@ git -C "../<repo 名稱>-issue-<編號>" submodule update --init --recursive
 
 新 worktree 缺少 runtime 時，依專案文件建立。後續 Gates 沿用同一個 branch／worktree。
 
+若 terminal 本身已在 Orca 內，但第一次 `orca status`／RPC 回報 `not_running`、
+`stale_bootstrap` 或 `runtime_unavailable`，先把它視為執行環境權限或連線未通，不足以證明
+Orca 沒開。依目前 sandbox／GUI 規則，以可連到桌面 runtime 的權限重跑同一個已選定的 Orca
+CLI；只有這次核對仍確認沒開，才依 `$orca-cli` 指引啟動 Orca。啟動後也用相同權限再確認。
+核對完成前不要求使用者手動開啟或重開 Orca，也不改用另一個 Orca executable。
+
 若目前環境是 Orca，建立或沿用 worktree 後必須完成以下動作，才算開始 Gate：
 
 1. 使用 `$orca-cli` 的即時指引，以專案規定的 branch 與路徑建立或解析 Orca 管理的
-   issue worktree，並讓 Orca 顯示／切換到該 worktree。當 Orca 的建立介面無法同時滿足專案
-   指定的 branch 與路徑時，先依專案命名規則以 `git worktree add` 建立，再讓 Orca 以 branch
-   或絕對路徑解析它；這是同一次自動流程，不另外請使用者操作。
-2. 使用 `$orchestration` 的即時指引建立或沿用 Run，建立目前 Gate 的 development Task，
-   並以該 issue worktree 的完整 id／絕對路徑啟動或派送 Agent A。若指令從主 worktree
-   發出，協調者留在原處監督，Agent A 由 issue worktree 內的 Orca terminal 執行開發。
-3. 派送前核對 Agent A terminal 所屬的 worktree id、工作目錄與 branch 都是這張 issue 的
-   worktree。主 worktree 繼續留在預設 branch；從主 worktree 使用 `git -C` 執行開發，不算
-   已切到 issue worktree。
+   issue worktree，並讓目前 session 切換到該 worktree 擔任 Agent A。當 Orca 的建立介面
+   無法同時滿足專案指定的 branch 與路徑時，先依專案命名規則以 `git worktree add` 建立，
+   再讓 Orca 以 branch 或絕對路徑解析它；這是同一次自動流程，不另外請使用者操作。
+2. 開始開發前核對目前 session 的 worktree id、工作目錄與 branch 都是這張 issue 的
+   worktree。
 
-若 Orca 無法把 Agent A 放在正確的 issue worktree，在修改檔案前停止並回報。後續 Gate 與
+若目前 session 不在正確的 issue worktree，在修改檔案前停止並回報。後續 Gate 與
 返工都沿用同一個 Orca worktree，不建立第二個 issue worktree。
 
 開發者接著：
@@ -86,12 +88,11 @@ Gate 1 的 diff 起點是 issue branch 的起點；後續 Gate 是上一個 PASS
 與 A 是同一種 agent、曾參與目前 Gate 開發、無法取得、目標不再唯一，或指定的既有目標不在
 該 issue worktree，回報後停止並請使用者重新指定，不自行替換。
 
-若目前環境是 Orca，協調者處理 Agent A 的 `worker_done` 後，先依 `$orchestration` 的即時
-指引釋放 Agent A worker，再建立 review Task，並以同一個 issue worktree 的完整 id／絕對路徑
-啟動獨立的 Agent B。
-派送前核對 Agent B terminal 所屬的 worktree 與 Agent A 相同，不可從主 worktree 的
-`active`／`current` 推測。等待 Agent B 的 `worker_done` 並依即時指引釋放 Agent B worker；
-不得用非 Orca 的協作工具冒充 Orca orchestration。其他環境使用其可用的獨立
+若目前環境是 Orca，開發交接完成後，依 `$orchestration` 的即時指引建立 review Task，
+並以目前這個 issue worktree 的完整 id／絕對路徑啟動獨立的 Agent B。
+派送前核對 Agent B terminal 所屬的 worktree 與目前 session 相同。等待 Agent B 的
+`worker_done` 並依即時指引釋放 Agent B worker；不得用非 Orca 的協作工具冒充 Orca
+orchestration。其他環境使用其可用的獨立
 agent／session 機制。無法取得獨立驗收者時回報後停止，不得由開發者切換身份驗收自己。
 
 驗收者只讀 issue、issue 留言、目前 Gate、這次 diff 與必要的相關代碼，並依 repo 的專案現實、使用者要求、實際風險、成本與效益判斷是否已是合理實作。可以重跑必要的針對性驗證；不必重跑開發者的全部測試，也不預設重跑會登入外部服務或寫入正式資料的 E2E。
