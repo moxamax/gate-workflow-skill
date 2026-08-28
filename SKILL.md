@@ -90,10 +90,15 @@ Gate 1 的 diff 起點是 issue branch 的起點；後續 Gate 是上一個 PASS
 
 若目前環境是 Orca，開發交接完成後，依 `$orchestration` 的即時指引建立 review Task，
 並以目前這個 issue worktree 的完整 id／絕對路徑啟動獨立的 Agent B。
-派送前核對 Agent B terminal 所屬的 worktree 與目前 session 相同。等待 Agent B 的
-`worker_done` 並依即時指引釋放 Agent B worker；不得用非 Orca 的協作工具冒充 Orca
-orchestration。其他環境使用其可用的獨立
-agent／session 機制。無法取得獨立驗收者時回報後停止，不得由開發者切換身份驗收自己。
+派送前核對 Agent B terminal 所屬的 worktree 與目前 session 相同。
+啟動成功（含 input 已寫入或 TUI idle）只表示終端與交接文字已就位。
+接著讀 Agent B 畫面，確認它已開始處理這次交接；停在未送出的輸入框時，依
+`$orca-cli` 送出該則交接並再核對一次。確認開始後才等待 `worker_done`，並依
+即時指引釋放 Agent B worker。交接已寫入但無法送出時（例如 terminal 已被使用
+者接管），回報後停止並請使用者重新指定 Agent B。
+不得用非 Orca 的協作工具冒充 Orca orchestration。其他環境使用其可用的獨立
+agent／session 機制，同樣要確認 B 已開始處理交接後才等待結論。無法取得獨立
+驗收者時回報後停止，不得由開發者切換身份驗收自己。
 
 驗收者只讀 issue、issue 留言、目前 Gate、這次 diff 與必要的相關代碼，並依 repo 的專案現實、使用者要求、實際風險、成本與效益判斷是否已是合理實作。可以重跑必要的針對性驗證；不必重跑開發者的全部測試，也不預設重跑會登入外部服務或寫入正式資料的 E2E。
 
