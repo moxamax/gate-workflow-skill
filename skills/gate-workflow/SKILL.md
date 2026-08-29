@@ -2,7 +2,7 @@
 name: gate-workflow
 description: 以人工核准 issue 啟動與結案，並由使用者指定 Agent B，在 Gate 內自動編排 branch／worktree、開發、獨立驗收與返工。當使用者以 backlog、issue 或 Gate 管理工作，或要求草擬／核准 issue、implement／實作 issue、開始／續作 Gate、處理 PASS／TRIM／REWORK、合併、push 或關閉 issue 時使用；開始或續作目前 Gate 後自動接力至最後 PASS 或停止條件。
 ---
-# Ticket／Gate 自動驗收接力
+# Ticket／Gate 自動驗收接力工作流程
 
 先讀目前 repo 的 agent instructions、GitHub issue 與本次 Gate 直接相關的文件。專案指令決定
 命名、必要測試、驗收判準與 Git 邊界；未規定的部分才使用本技能的預設值。

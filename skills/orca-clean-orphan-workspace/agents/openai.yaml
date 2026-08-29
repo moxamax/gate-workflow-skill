@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orca 孤兒工作區清理"
+  short_description: "安全清除 Orca Unknown／孤兒工作區，不刪磁碟資料"
+  default_prompt: "使用 $orca-clean-orphan-workspace 安全清除 Orca 側邊欄的 Unknown／孤兒工作區，並保留底層資料夾。"
