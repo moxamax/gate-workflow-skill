@@ -60,14 +60,18 @@ CLI；只有這次核對仍確認沒開，才依 `$orca-cli` 指引啟動 Orca�
 若目前環境是 Orca，建立或沿用 worktree 後必須完成以下動作，才算開始 Gate：
 
 1. 使用 `$orca-cli` 的即時指引，以專案規定的 branch 與路徑建立或解析 Orca 管理的
-   issue worktree，並讓目前 session 切換到該 worktree 擔任 Agent A。當 Orca 的建立介面
-   無法同時滿足專案指定的 branch 與路徑時，先依專案命名規則以 `git worktree add` 建立，
-   再讓 Orca 以 branch 或絕對路徑解析它；這是同一次自動流程，不另外請使用者操作。
-2. 開始開發前核對目前 session 的 worktree id、工作目錄與 branch 都是這張 issue 的
-   worktree。
+   issue worktree，取得其完整 id 與絕對路徑。當 Orca 的建立介面無法同時滿足專案指定的
+   branch 與路徑時，先依專案命名規則以 `git worktree add` 建立，再讓 Orca 以 branch 或
+   絕對路徑解析它；這是同一次自動流程，不另外請使用者操作。
+2. 開始開發前，以該絕對路徑核對 Git worktree 根目錄與 branch，確認與 Orca 解析的
+   issue worktree 一致。每次開發與驗證命令明確指定工具的工作目錄，或先 `cd` 到該路徑；
+   Git 操作可用 `git -C`，檔案編輯使用該 worktree 內的絕對路徑。
 
-若目前 session 不在正確的 issue worktree，在修改檔案前停止並回報。後續 Gate 與
-返工都沿用同一個 Orca worktree，不建立第二個 issue worktree。
+Agent A 的對話／terminal 可以留在原 worktree；實作、驗證、stage 與 commit 的目標都必須
+是 issue worktree。這已包含在開始 Gate 的授權內，不需要搬移或重開 session，也不另問
+使用者是否允許從原位置操作。Gate 開發期間，主要 worktree 保持在預設 branch 且不承接
+本 Gate 的修改。若無法確認或指定正確的操作目標，在修改檔案前停止並回報。後續 Gate 與
+返工都沿用同一個 issue worktree。
 
 開發者接著：
 
@@ -89,8 +93,9 @@ Gate 1 的 diff 起點是 issue branch 的起點；後續 Gate 是上一個 PASS
 該 issue worktree，回報後停止並請使用者重新指定，不自行替換。
 
 若目前環境是 Orca，開發交接完成後，依 `$orchestration` 的即時指引建立 review Task，
-並以目前這個 issue worktree 的完整 id／絕對路徑啟動獨立的 Agent B。
-派送前核對 Agent B terminal 所屬的 worktree 與目前 session 相同。
+並以開發時核對的 issue worktree 完整 id／絕對路徑啟動獨立的 Agent B。
+派送前核對 Agent B terminal 所屬的 worktree 是該 issue worktree；從原 worktree 發出
+指令時，明確指定此目標，不以原 session 的 `active`／`current` 推測。
 啟動成功（含 input 已寫入或 TUI idle）只表示終端與交接文字已就位。
 接著讀 Agent B 畫面，確認它已開始處理這次交接；停在未送出的輸入框時，依
 `$orca-cli` 送出該則交接並再核對一次。確認開始後才等待 `worker_done`，並依
