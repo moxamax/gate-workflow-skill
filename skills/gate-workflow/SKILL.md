@@ -1,6 +1,6 @@
 ---
 name: gate-workflow
-description: 以人工核准 issue 啟動與結案，並由使用者指定 Agent B，在 Gate 內自動編排 branch／worktree、開發、獨立驗收與返工。當使用者以 backlog、issue 或 Gate 管理工作，或要求草擬／核准 issue、implement／實作 issue、開始／續作 Gate、處理 PASS／TRIM／REWORK、合併、push 或關閉 issue 時使用；開始或續作目前 Gate 後自動接力至最後 PASS 或停止條件。
+description: 以人工核准 issue 啟動與結案，並由使用者指定 Agent B，在 Gate 內自動編排 branch／worktree、開發、獨立驗收與返工。當使用者以 backlog、issue 或 Gate 管理工作，或要求草擬／核准 issue、implement／實作 issue、開始／續作 Gate、處理 PASS／TRIM／REWORK、合併、push 或關閉 issue 時使用；開始或續作目前 Gate 後自動接力至最終整合 PASS 或停止條件。
 ---
 # Ticket／Gate 自動驗收接力工作流程
 
@@ -26,8 +26,9 @@ description: 以人工核准 issue 啟動與結案，並由使用者指定 Agent
    GitHub issue。建立後停止。
 
 已有 issue 時，讀取 issue 與留言，找出第一個未勾選的 Gate 及上一個 PASS commit。若使用者
-只要求準備或查詢狀態，回報後停止；若同時要求 `implement issue #<編號>`、實作、開始或續作，
-視為明確開始目前 Gate，直接進入下節，不在狀態回報後停止。
+只要求準備或查詢狀態，回報後停止；若所有 Gate 已勾選，先核對第 4 節的最終整合驗收紀錄。
+若同時要求 `implement issue #<編號>`、實作、開始或續作，視為明確開始目前 Gate，直接進入
+下節；沒有未完成 Gate 時，尚無有效最終 PASS 就接續第 4 節的整合驗收，已有則進入第 5 節。
 
 ## 2. 開始或續作 Gate
 
@@ -75,14 +76,16 @@ Agent A 的對話／terminal 可以留在原 worktree；實作、驗證、stage 
 
 開發者接著：
 
-1. 只實作目前 Gate，不預做後續 Gate。
+1. 只實作目前 Gate，不預做後續 Gate；最終整合返工的範圍依第 4 節。
 2. 執行 issue 所列且與改動相稱的測試。改到可執行行為且有適用的真實環境 E2E 時，E2E
    必須成功；已證實的行為錯誤或測試失敗就找出根因、修正並重跑。必要驗證無法完成或證據
    不足時，依第 4 節記錄「驗收受阻」並停止；不適用的驗證則記錄理由，完成其餘適用檢查。
-3. 只 stage 本 Gate 的明確路徑並 commit。Gate 可以有多個 commits；交接前 worktree 必須乾淨。
+3. 最後 Gate 交接前，完成本次行為真正影響的必要文件與適用驗證；沒有影響就不製造文件變更。
+   只 stage 本 Gate 的明確路徑並 commit。Gate 可以有多個 commits；交接前 worktree 必須乾淨。
 4. 建立驗收交接資料：issue／Gate 與目標、diff base 完整 SHA、受驗 head 完整 SHA、worktree
    id／絕對路徑、改動檔案、驗收條件對應的驗證證據（執行方式、結果與可核對來源），以及
    **交給驗收者的一句話 prompt**。B 就位時補齊其 agent 類型與 session／terminal 識別。
+   最後 Gate 另備妥第 4 節的最終整合驗收範圍與證據。
 5. 立即依第 3 節把交接資料交給獨立驗收者並等待結論，不再要求使用者下達驗收指示。
 
 Gate 1 的 diff 起點是 issue branch 的起點；後續 Gate 是上一個 PASS commit。將起點解析為
@@ -136,8 +139,8 @@ review Task 已完成，`worker_done` 的 outcome 為 `succeeded`；驗收結論
 ## 4. 記錄結論與接續 Gate
 
 協調者先核對結論與交接的 issue／Gate、base／head、B 身分及受驗 worktree 狀態。
-任一不符（包括 head 相同卻有未提交的受驗內容變更），舊結論不得套用或接續；依下段記錄差異並保留現況，
-釐清範圍與變更來源，完成適用修正／驗證後，以新交接重新驗收，不沿用舊 PASS。
+任一不符（包括 head 相同卻有未提交的受驗內容變更），舊結論不得套用或接續；依下段記錄
+差異並保留現況，釐清範圍與變更來源，完成適用修正／驗證後，以新交接重新驗收，不沿用舊 PASS。
 
 每次結論（含 PASS、退件與受阻）皆先由協調者寫入 issue 留言：上述識別、B 的原始結論、
 驗收條件與證據、重跑或採用的驗證及來源、未驗證／不適用項目與理由。必要驗證缺漏仍屬
@@ -147,9 +150,9 @@ review Task 已完成，`worker_done` 的 outcome 為 `succeeded`；驗收結論
 識別核對及紀錄成功後，依結論接續：
 
 - `PASS`：直接勾選目前 Gate，並在 issue 內文記錄通過時的受驗 commit，不再等待使用者接受。
-  更新成功且仍有未完成 Gate 時，立即把第一個未勾選 Gate 當成目前 Gate，沿用同一 branch／worktree，依第 2 節開始開發；完成、驗證、commit 與交接
-  後自動再次驗收，不另問使用者是否開始。
-  若這是最後一個 Gate，詢問使用者是否執行第 5 節的完整結案收尾，然後停止等待答覆。
+  更新成功且仍有未完成 Gate 時，立即把第一個未勾選 Gate 當成目前 Gate，沿用同一 branch／
+  worktree，依第 2 節開發、驗證、commit 與交接後自動再次驗收，不另問使用者是否開始。
+  若這是最後一個 Gate，先完成本節的最終整合驗收；只有最終 PASS 紀錄完成才進入第 5 節。
 - `驗收受阻`：Gate 保持未勾選，在上述紀錄補上缺少的驗證／證據、原因與恢復條件，停止
   自動接力，不進入下一 Gate，也不增加或重置既有連續 REWORK 次數。恢復條件成立後，補齊
   必要驗證與交接，再由 B 驗收同一 Gate；不得因阻礙消失直接 PASS。
@@ -181,25 +184,50 @@ review Task 已完成，`worker_done` 的 outcome 為 `succeeded`；驗收結論
 同一問題在根因分析後再次出現，視為已達停止條件，不以改寫程式、換驗收者或拆成新問題重置
 計數。驗收結論無法明確對應目前 Gate 與受驗 commit 時也停止，不把不確定結論帶入自動返工。
 
+### 最終整合驗收
+
+逐 Gate 驗收之外，最後自動啟動 B 驗收整張 issue。可與最後 Gate 的驗收合併，但交接與結論
+須明列：全部 Gate 的驗收條件、從 issue branch 起點 SHA 到最終 head SHA 的累積 diff、
+跨 Gate 互動與受影響的既有功能；不能只看最後 Gate 的增量。必要文件及相關 commits 都須
+先完成。另記錄預計合併的預設 branch 與當時 SHA，供結案時核對目標變動。
+
+整合驗收與後續補驗歸最後 Gate 管理，範圍是整張 issue；跨 Gate 回歸屬此次返工範圍，不能
+因較早 Gate 曾 PASS 而排除。沿用本節的版本核對、證據紀錄、受阻／退件／根因分析與熔斷
+流程及最後 Gate 的連續 REWORK 計數，不另開 Gate 重置次數。未通過時，最後 Gate 保持或
+恢復未勾選，保留歷史 PASS 紀錄並標明目前最終 PASS 尚未成立／已失效；不得結案。
+合理的 TRIM／REWORK 自動修正、驗證、commit 並重新交接；受阻則依恢復條件補證據再驗收。
+
+最終 PASS 後，由協調者依本節保存整體驗收證據、累積 diff base、最終受驗 head 與目標
+branch／SHA，並同步最後 Gate 的 PASS commit。其後若新增變更，先使最終 PASS 失效，
+由 B 補驗變更及其影響範圍；影響較大時重新做適用整體驗收，不強制從頭重跑全部測試。
+新的最終受驗 SHA 與 PASS 證據記錄成功後才能結案；收尾不能新增未驗收 commit 後直接合併。
+
 ## 5. 結案收尾
 
-最後一個 Gate 記錄 PASS 後，使用以下問題一次列明授權範圍：
+最終整合 PASS、必要文件與證據均已備妥可供檢視後，使用以下問題一次列明授權範圍：
 
-> 所有 Gate 已 PASS。是否執行結案收尾（更新文件與最終驗證、合併回預設 branch、清除 issue
-> worktree／本機 branch、push 預設 branch、關閉 issue）？
+> 所有 Gate 與最終整合驗收已 PASS。是否執行結案收尾（核對最終受驗版本與最新目標分支、
+> 合併回預設 branch、合併後驗證、push 預設 branch、清除 issue worktree／本機 branch、關閉 issue）？
 
-只有使用者明確同意後才依序執行：
+只有使用者明確同意後才依序執行。沒有新增問題時沿用既有結案授權，不重複確認；超出已核准
+需求的工作仍先依原有範圍規則交由使用者決定。
 
-1. 開發者更新本次行為真正影響的專案文件；沒有影響就不製造文件變更。執行最後一次適用
-   驗證並 commit，確認 issue worktree 乾淨。
-2. 協調者確認預設 branch worktree 也乾淨，再把 issue branch 合併回預設 branch。合併衝突就
-   停止並回報。
-3. 在合併後的預設 branch 執行適用驗證；成功後 push 預設 branch。Push 失敗就保留 issue
-   開啟及 issue worktree／branch，停止並回報。
+1. 核對 issue head 等於紀錄的最終受驗 SHA，issue 與預設 branch worktree 都乾淨，且合併
+   目標確為預設 branch。取得並核對該目標的最新遠端狀態（例如 fetch 後核對本機／遠端 SHA），
+   不能只憑舊的 remote-tracking ref；合併目標須包含最新遠端內容。將目標與最終驗收記錄的
+   目標 SHA 比對；若已變動，先檢查對本 issue 的影響並完成適用整合驗證、保存證據。如須更新 issue branch，依第 4 節重新
+   交接與 B 驗收；若需補文件或其他修改也走相同流程。版本／遠端狀態無法確認、驗證受阻或
+   失敗、有衝突時都停止交付並回報，不猜測安全。
+2. 將已驗收的 issue branch 合併回已核對的預設 branch；合併衝突就停止並回報。以父提交／
+   ancestry 與內容差異確認合併結果確實包含已驗收成果，並記錄 issue head 與合併結果 SHA。
+   正常 merge commit 可有不同 SHA，不因此當作未驗收的開發 commit；除已核對的目標與
+   受驗 issue 內容外，若另有修改，依第 4 節補驗，不得用合併掩蓋未驗收內容。
+3. 在合併後的預設 branch 執行適用驗證，將結果記入 issue；成功後才 push 預設 branch。
+   合併後驗證或 push 失敗時，保留 issue 開啟及 issue worktree／branch，停止並回報。
 4. 確認 push 成功且 issue worktree 乾淨後，移除該 worktree，並安全刪除已合併的本機 issue
    branch。清理未完整成功時保留 GitHub issue 開啟並回報實際狀態。
-5. 前述步驟全數成功後關閉 GitHub issue，回報 merge commit、push、驗證、文件變更、清理與
-   issue 狀態。
+5. 前述步驟全數成功後關閉 GitHub issue，回報最終受驗 SHA、合併結果 SHA、push、驗證、
+   文件變更、清理與 issue 狀態。
 
 推送 issue branch、force-push、建立 PR 或刪除 remote branch 不包含在這項授權內，仍須另行
 取得使用者明確許可。
