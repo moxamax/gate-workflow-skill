@@ -56,7 +56,8 @@ Gate 自行編排 commit、審查與交付，不再套用整套 `implement` 流�
 
 專案規則決定直接合併或 PR 交付，未指定時預設直接合併。開始 Gate 包含本機開發與該 issue
 進度紀錄，不自動授權雲端設定或部署。交付只補問尚缺的授權，並列明 push 會觸發的 CI／部署；
-PR 交付後等待指定的人合併，issue 與 worktree 保留至實際結案。
+PR 交付後等待指定的人合併，issue 與 worktree 保留至實際結案；合併後取得結案授權，
+才清除 worktree、本機與遠端 branch 並關閉 issue。
 
 ```text
 使用 $orca-clean-orphan-workspace 清除 Orca 側邊欄的 Unknown 專案，保留底層資料夾。

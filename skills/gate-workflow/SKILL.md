@@ -284,6 +284,22 @@ branch／SHA，並同步最後 Gate 的 PASS commit。其後若新增變更，�
    結果並提供連結。失敗時保留 issue、branch 與 worktree，回報實際狀態。
    PR 交付成功後，記錄「已交付，待合併」
    並附 PR 連結；issue 保持開啟，branch／worktree 保留供後續修正。
-3. 指定合併者完成合併後，核對實際合併結果包含受驗成果及必要驗證；受驗內容有變更時，
-   依第 4 節補驗，再依已有授權結案與清理。
-   PR 建立、更新或技術 PASS 本身都不授權合併、push 預設 branch、force-push 或刪除 branch。
+3. 合併由指定合併者執行；使用者要求代為合併時，該要求即授權這次合併。合併前核對 PR head
+   仍等於最終受驗 SHA，依專案規則或 repo 既有慣例選合併方式，刪除 branch 留到第 4 步。
+   合併後 fetch，核對 PR 已合併且合併結果包含受驗成果：merge commit 以 ancestry 核對，
+   squash／rebase 以內容差異核對。在合併後的預設 branch 執行適用驗證，把 PR 連結、合併
+   結果 SHA 與驗證結果記入 issue；受驗內容有變更時，依第 4 節補驗後才清理。
+4. 清理需要結案授權；尚未取得時，列明會執行的動作請使用者核准，例如：
+
+   > PR #<編號> 已合併並驗證。是否執行結案收尾（以 fast-forward 更新本機預設 branch、
+   > 移除 issue worktree、刪除本機與遠端 issue branch、關閉 issue）？
+
+   取得授權後依序執行；清理未完整成功時保留 GitHub issue 開啟並回報實際狀態。
+   1. 本機預設 branch 乾淨時，以 fast-forward 更新到合併結果。
+   2. issue worktree 乾淨時移除。
+   3. 安全刪除本機 issue branch；squash／rebase 合併使安全刪除被拒時，保留 branch 並請
+      使用者決定。
+   4. 刪除遠端 issue branch；repo 設定合併後自動刪除時，只核對已刪除。
+   5. issue 未被 PR 自動關閉時關閉它，回報合併結果 SHA、驗證、清理與 issue 狀態。
+
+PR 建立、更新或技術 PASS 本身都不授權合併、push 預設 branch、force-push 或刪除 branch。
