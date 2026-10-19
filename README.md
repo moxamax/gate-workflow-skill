@@ -4,7 +4,7 @@
 
 | Skill | 用途 |
 | --- | --- |
-| `gate-workflow` | 以人工核准編排 GitHub issue、Gate worktree、開發、獨立驗收、返工與結案。 |
+| `gate-workflow` | 以人工核准編排垂直切片 issue、Gate worktree、開發、獨立驗收、返工與合併／PR 交付。 |
 | `orca-clean-orphan-workspace` | 安全清除 Orca 側邊欄的 `Unknown`／孤兒工作區，同時保留底層資料夾與 Git 資料。 |
 
 ## 一次安裝兩個 skills
@@ -45,6 +45,18 @@ npx skills list --global
 ```text
 使用 $gate-workflow 實作已核准的 issue；Agent B 使用 Claude。
 ```
+
+Agent B 必須與開發者是不同類型的 agent，且未參與該 Gate 開發；後續 Gates 沿用指定，
+每次驗收使用新 session（或使用者指定的既有目標）。
+
+Gate 採可獨立展示或驗證的垂直切片，小 issue 可以只有一個 Gate。核准 issue 時一併約定
+測試邊界與驗收環境；適合自動測試的邏輯以一個行為、一個失敗測試、一個最小實作逐段完成，
+每個 Gate 同步必要文件後交給獨立驗收者。這沿用 `to-tickets` 的切片與 `tdd` 的測試精神；
+Gate 自行編排 commit、審查與交付，不再套用整套 `implement` 流程。
+
+專案規則決定直接合併或 PR 交付，未指定時預設直接合併。開始 Gate 包含本機開發與該 issue
+進度紀錄，不自動授權雲端設定或部署。交付只補問尚缺的授權，並列明 push 會觸發的 CI／部署；
+PR 交付後等待指定的人合併，issue 與 worktree 保留至實際結案。
 
 ```text
 使用 $orca-clean-orphan-workspace 清除 Orca 側邊欄的 Unknown 專案，保留底層資料夾。
