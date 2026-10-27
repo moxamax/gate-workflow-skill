@@ -46,10 +46,14 @@ npx skills list --global
 使用 $gate-workflow 實作已核准的 issue；Agent B 使用 Claude。
 ```
 
-Agent B 必須與開發者是不同類型的 agent，且未參與該 Gate 開發；後續 Gates 沿用指定，
-每次驗收使用新 session（或使用者指定的既有目標）。
+Agent B 必須與開發者是不同類型的 agent，且未參與該 Gate 開發；後續 Gates 沿用指定。
+每次驗收都從空白對話開始（新 session，或在使用者指定的既有目標開新對話）。B 只收到
+定位資料與 `references/reviewer.md`，先依 issue、diff 與自己重跑的結果獨立判讀，再對照
+開發者寫在 issue 交接留言的說法。同一 Gate 第三次 `REWORK`，或 `TRIM` 與 `REWORK`
+合計第四次退件時，停止自動返工並交由使用者決定。
 
-Gate 採可獨立展示或驗證的垂直切片，小 issue 可以只有一個 Gate。核准 issue 時一併約定
+Gate 採可獨立展示或驗證的垂直切片，小 issue 可以只有一個 Gate。核准前，issue 草稿先交給
+未參與草擬的新 context，從零決策、可驗證與精簡三個視角審查。核准 issue 時一併約定
 測試邊界與驗收環境；適合自動測試的邏輯以一個行為、一個失敗測試、一個最小實作逐段完成，
 每個 Gate 同步必要文件後交給獨立驗收者。這沿用 `to-tickets` 的切片與 `tdd` 的測試精神；
 Gate 自行編排 commit、審查與交付，不再套用整套 `implement` 流程。
@@ -71,7 +75,11 @@ PR 交付後等待指定的人合併，issue 與 worktree 保留至實際結案�
 skills/
 ├── gate-workflow/
 │   ├── SKILL.md
-│   └── agents/openai.yaml
+│   ├── agents/openai.yaml
+│   └── references/
+│       ├── reviewer.md
+│       ├── orca.md
+│       └── delivery.md
 └── orca-clean-orphan-workspace/
     ├── SKILL.md
     ├── agents/openai.yaml
