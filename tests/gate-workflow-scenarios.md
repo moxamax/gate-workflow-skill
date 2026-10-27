@@ -1,7 +1,8 @@
 # gate-workflow 情境測試
 
 每則情境描述一個時間點的狀態，測試 agent 在那個狀態下的下一步是否符合預期。執行方式見
-[TESTING.md](../TESTING.md)。「預期」列出必須出現的動作，「不應」列出出現即失敗的動作。
+[TESTING.md](../TESTING.md)。結果取決於 A、B 類型的情境要寫明類型，因為測試 agent 會把自己的類型
+當成 A。「預期」列出必須出現的動作，「不應」列出出現即失敗的動作。
 
 ## Agent A
 
@@ -37,7 +38,7 @@
 - **依據**：SKILL.md 第 1 節第 5 步。
 
 ### A6 交接內容
-- **情境**：Gate 2 開發完成，worktree 乾淨，B 指定為 Claude。
+- **情境**：A 是 Codex。Gate 2 開發完成，worktree 乾淨，B 指定為 Claude。
 - **預期**：
   - 先貼出 issue 交接留言，開頭註明 Gate 與 base／head SHA。
   - 給 B 的 prompt 只含：reviewer.md 絕對路徑、issue 編號、範圍與 base、head、worktree、留言連結。
@@ -45,7 +46,7 @@
 - **依據**：SKILL.md 第 2 節第 5 步、orca.md「派送 Agent B」。
 
 ### A7 既有 terminal 擔任 B
-- **情境**：使用者指定 Orca 中某個 Claude terminal 當 B，它上一輪驗收過 Gate 1。
+- **情境**：A 是 Codex。使用者指定 Orca 中某個 Claude terminal 當 B，它上一輪驗收過 Gate 1。
 - **預期**：交接前先在該 terminal 開新對話（例如 `/clear`），確認它開始處理交接後才等待結論。
 - **依據**：SKILL.md 第 3 節、orca.md。
 

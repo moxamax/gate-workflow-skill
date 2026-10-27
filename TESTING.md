@@ -42,3 +42,4 @@ Agent B 情境改成只讀 `references/reviewer.md`，身分是 Agent B。
 
 | 日期 | Commit | A／B | 範圍 | 結果 | 備註 |
 | --- | --- | --- | --- | --- | --- |
+| 2026-10-27 | `8e9f5b5` | Claude Opus 5.5 subagent／同左 | A4、A6、A8、A10、A12、B1 | 6/6 通過 | 只測 Claude，Codex 未測。A6 初跑因情境沒寫 A 的類型而停止（測試題漏洞，已補 A 類型後重跑通過）。A8 指出熔斷時是否分流不明，已在熔斷規則寫明。 |
