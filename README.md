@@ -50,7 +50,8 @@ Agent B 必須與開發者是不同類型的 agent，且未參與該 Gate 開發
 每次驗收都從空白對話開始（新 session，或在使用者指定的既有目標開新對話）。B 只收到
 定位資料與 `references/reviewer.md`，先依 issue、diff 與自己重跑的結果獨立判讀，再對照
 開發者寫在 issue 交接留言的說法。同一 Gate 第三次 `REWORK`，或 `TRIM` 與 `REWORK`
-合計第四次退件時，停止自動返工並交由使用者決定。
+合計第四次退件時，停止自動返工並交由使用者決定。驗收案例有穩定編號，B 的每個問題都註明
+編號與證據；開發者逐條分成修正或反駁，有任一條反駁就在修改前停止，交由使用者決定。
 
 Gate 採可獨立展示或驗證的垂直切片，小 issue 可以只有一個 Gate。核准前，issue 草稿先交給
 未參與草擬的新 context，從零決策、可驗證與精簡三個視角審查。核准 issue 時一併約定
@@ -84,4 +85,9 @@ skills/
     ├── SKILL.md
     ├── agents/openai.yaml
     └── references/renderer-forget-local.md
+scripts/check_skills.py           # 靜態檢查
+tests/gate-workflow-scenarios.md  # 情境測試
+TESTING.md                        # 測試方式與實測紀錄
 ```
+
+修改 skill 後依 [TESTING.md](TESTING.md) 執行靜態檢查與受影響的情境測試。
