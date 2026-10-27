@@ -11,18 +11,21 @@ description: 以人工核准 issue 啟動與交付，在 Gate 內編排 worktree
 使用者要求「直接做」一般修改時當成單次任務；
 若範圍無法安全地一次完成，先回報並等待使用者決定是否改走 Gate，不自行建立 issue。
 
-一張 issue 使用同一個 branch／worktree 完成所有 Gates。GitHub issue 是 Gate 進度的唯一紀錄。
-協調者管理 issue 狀態與接力，開發者只實作目前 Gate，驗收者只驗收。驗收者必須是未參與
-該 Gate 開發的另一種 agent 且使用另一個 session；不同 model 或不同 session 的同一種 agent
-不算獨立，例如 Codex 不得同時擔任 Agent A 與 Agent B。使用者開始或續作目前 Gate 後，開發、
-獨立驗收、合理退件修正與下一 Gate 自動接力；只有本技能列明的停止條件需要使用者決定。
+一張 issue 使用同一個 branch／worktree 完成所有 Gates。GitHub issue 是 Gate 進度的唯一紀錄；
+Gate 的目標、驗收案例與測試邊界以 issue 內文為準，核准的變更都寫回內文。
+Agent A 同時是協調者（管理 issue 狀態與接力）與開發者（只實作目前 Gate）；Agent B 是
+驗收者，只驗收。驗收者必須是未參與該 Gate 開發的另一種 agent，且每次驗收都從空白對話
+開始；不同 model 或不同 session 的同一種 agent 不算獨立，例如 Codex 不得同時擔任 Agent A
+與 Agent B。使用者開始或續作目前 Gate 後，開發、獨立驗收、合理退件修正與下一 Gate 自動
+接力；只有本技能列明的停止條件需要使用者決定。
 
 ## 1. 從需求到 issue
 
 1. 仍有會改變方案的未決事項時，使用可用的需求釐清技能，如 `$grilling`；若無相關技能，
    只詢問必要問題。需求尚未釐清時不建立 issue。
 2. 使用者要求草擬 issue 後，只草擬：要達成的結果、依必要依賴排列的 Gates，以及各 Gate 的
-   驗收案例。採 tracer-bullet 垂直切片：每段走通完成該行為所需的資料、邏輯、介面與驗證，
+   驗收案例。每條驗收案例給穩定編號（例如 `G2-AC1`），之後的交接、B 的問題與 issue 紀錄
+   都用編號引用。採 tracer-bullet 垂直切片：每段走通完成該行為所需的資料、邏輯、介面與驗證，
    可獨立展示或驗證；不按資料庫、API、UI 橫切。切片保持可運作，大小適合一次新 session
    完成；小 issue 可以只有一個 Gate。若機械式跨模組修改確實無法縱切，明列可保持可運作的
    例外順序，依專案相容策略處理，不自行保留已退役設計。
@@ -34,7 +37,16 @@ description: 以人工核准 issue 啟動與交付，在 Gate 內編排 worktree
    列明目標環境、資料範圍、操作及授權，包括 push 觸發的 CI／部署。需求或驗收條件本身
    不等於執行授權；帳單、IAM、secrets、正式資料與部署等操作，依使用者或專案已有的明確
    授權執行，缺少時在該操作前才詢問；已授權的相同範圍不重問。
-5. Issue 內文以 checkbox 記錄各 Gate；預留 PASS commit。只有使用者明確核准後才建立
+5. 請使用者核准前，把草稿交給未參與草擬的新 context 審查（可用 subagent，不要求與
+   Agent A 不同類型）。只提供草稿、repo 路徑與以下視角，不附討論過程：
+   - **零決策**：新 session 只靠草稿與 repo 能否完成每個 Gate，不必自行做會改變外部行為的
+     設計選擇。
+   - **可驗證**：每個驗收案例能否從核准的測試邊界觀察，哪些只能由人確認。
+   - **精簡**：有無多餘的 Gate、可重用的既有代碼、偽裝成縱切的橫切或預做的未來需求。
+
+   逐條標記採納或反駁（反駁附源頭證據），修正草稿後連同未採納項目交給使用者。只有一個
+   Gate 且不涉及外部服務的小 issue，或無法取得新 context 時，略過並向使用者說明。
+6. Issue 內文以 checkbox 記錄各 Gate；預留 PASS commit。只有使用者明確核准後才建立
    GitHub issue。建立後停止。
 
 已有 issue 時，讀取 issue 與留言，找出第一個未勾選的 Gate 及上一個 PASS commit。若使用者
@@ -45,8 +57,7 @@ description: 以人工核准 issue 啟動與交付，在 Gate 內編排 worktree
 ## 2. 開始或續作 Gate
 
 首次開始 issue 時，使用者必須指定 Agent B；續作沿用已記錄的指定，不要求重複指定。
-可指定 agent 類型（例如 Codex／Claude；每次驗收開新 session），
-或可唯一辨識的既有 agent session／Orca terminal。
+可指定 agent 類型（例如 Codex／Claude），或可唯一辨識的既有 agent session／Orca terminal。
 Agent B 的類型必須與 Agent A 不同；指定既有目標時也先確認其 agent 類型。未指定或類型相同時，
 只請使用者指定另一種 Agent B 並停止，不開始開發。把 A、B 類型及 B 的指定方式記錄為 issue
 留言，並沿用至整張 issue 完成；除非使用者另行指定，不自行更換 B。
@@ -67,32 +78,22 @@ git -C "../<repo 名稱>-issue-<編號>" submodule update --init --recursive
 
 新 worktree 缺少 runtime 時，依專案文件建立。後續 Gates 沿用同一個 branch／worktree。
 
-若 terminal 本身已在 Orca 內，但第一次 `orca status`／RPC 回報 `not_running`、
-`stale_bootstrap` 或 `runtime_unavailable`，先把它視為執行環境權限或連線未通，不足以證明
-Orca 沒開。依目前 sandbox／GUI 規則，以可連到桌面 runtime 的權限重跑同一個已選定的 Orca
-CLI；只有這次核對仍確認沒開，才依 `$orca-cli` 指引啟動 Orca。啟動後也用相同權限再確認。
-核對完成前不要求使用者手動開啟或重開 Orca，也不改用另一個 Orca executable。
-
-若目前環境是 Orca，建立或沿用 worktree 後必須完成以下動作，才算開始 Gate：
-
-1. 使用 `$orca-cli` 的即時指引，以專案規定的 branch 與路徑建立或解析 Orca 管理的
-   issue worktree，取得其完整 id 與絕對路徑。當 Orca 的建立介面無法同時滿足專案指定的
-   branch 與路徑時，先依專案命名規則以 `git worktree add` 建立，再讓 Orca 以 branch 或
-   絕對路徑解析它；這是同一次自動流程，不另外請使用者操作。
-2. 開始開發前，以該絕對路徑核對 Git worktree 根目錄與 branch，確認與 Orca 解析的
-   issue worktree 一致。每次開發與驗證命令明確指定工具的工作目錄，或先 `cd` 到該路徑；
-   Git 操作可用 `git -C`，檔案編輯使用該 worktree 內的絕對路徑。
+terminal 在 Orca 內時（即使 `orca status`／RPC 回報 `not_running`、`stale_bootstrap` 或
+`runtime_unavailable`），先依 [references/orca.md](references/orca.md) 核對 runtime 並解析
+issue worktree；完成後才算開始 Gate。
 
 Agent A 的對話／terminal 可以留在原 worktree；實作、驗證、stage 與 commit 的目標都必須
-是 issue worktree。這已包含在開始 Gate 的授權內，不需要搬移或重開 session，也不另問
-使用者是否允許從原位置操作。Gate 開發期間，主要 worktree 保持在預設 branch 且不承接
-本 Gate 的修改。若無法確認或指定正確的操作目標，在修改檔案前停止並回報。後續 Gate 與
-返工都沿用同一個 issue worktree。
+是 issue worktree。每次開發與驗證命令明確指定工具的工作目錄，或先 `cd` 到該路徑；Git 操作
+可用 `git -C`，檔案編輯使用該 worktree 內的絕對路徑。這已包含在開始 Gate 的授權內，不需要
+搬移或重開 session，也不另問使用者是否允許從原位置操作。Gate 開發期間，主要 worktree 保持
+在預設 branch 且不承接本 Gate 的修改。若無法確認或指定正確的操作目標，在修改檔案前停止並
+回報。後續 Gate 與返工都沿用同一個 issue worktree。
 
 開發者接著：
 
 1. 讀取目前 Gate 的目標與核准的測試邊界，只實作目前 Gate，不預做後續 Gate；最終整合
    返工的範圍依第 4 節。既有 issue 未約定必要的測試邊界時，先補提並取得核准，再寫測試。
+   驗收案例尚未編號時，依 Gate 內順序補上編號並寫回 issue 內文，不改內容。
 2. 適合自動測試的新增或修改邏輯採 red → green；可用時讀取 `$tdd`，只採其實作與測試指引。
    每次先寫一個公開介面的行為測試，確認它因預期的行為缺少或錯誤而失敗，再寫最小實作
    讓它通過，逐段前進。預期值來自需求或獨立已知案例，避免重述實作或 mock 內部協作者。
@@ -104,81 +105,48 @@ Agent A 的對話／terminal 可以留在原 worktree；實作、驗證、stage 
 4. 每個 Gate 交接前，同步該 Gate 真正影響的必要文件並完成適用驗證；沒有影響就不製造文件變更。
    只 stage 本 Gate 的明確路徑並 commit。Gate 可以有多個 commits；交接前 worktree 必須乾淨。
    專案要求同步最新目標分支時，在交接前完成同步與受影響的驗證。
-5. 建立驗收交接資料：issue／Gate 與目標、diff base 完整 SHA、受驗 head 完整 SHA、worktree
-   id／絕對路徑、改動檔案、驗收條件對應的驗證證據（執行方式、結果與源頭位置，見第 3 節），
-   以及 **交給驗收者的一句話 prompt**。B 就位時補齊其 agent 類型與 session／terminal 識別。
-   最後 Gate 另備妥第 4 節的最終整合驗收範圍與證據。驗收範圍與方法由 B 依第 3 節決定，
-   交接只提供證據線索。
-6. 立即依第 3 節把交接資料交給獨立驗收者並等待結論，不再要求使用者下達驗收指示。
+5. 建立驗收交接，分成兩處，讓 B 先獨立判讀再對照說法：
+   - **issue 交接留言**：開頭註明 issue／Gate 與 base／head 完整 SHA；內容為改動檔案、
+     依驗收條件編號列出的驗證（執行方式、結果與源頭位置）、`REWORK` 的原因判定與其他開發者
+     說明；最後 Gate 另附第 4 節的最終整合驗收證據。
+   - **交給驗收者的一句話 prompt**：只含定位資料，即本技能 `references/reviewer.md` 的
+     絕對路徑、issue 編號、驗收範圍及其 base 完整 SHA（範圍種類見 reviewer.md）、受驗
+     head 完整 SHA、worktree id／絕對路徑，以及交接留言連結。
+
+   派送時記下 B 的 agent 類型與 session／terminal，供第 4 節與 B 結論所附識別核對。驗收
+   方法由 B 依 `references/reviewer.md` 決定，交接只提供證據線索。
+6. 立即依第 3 節把 prompt 交給獨立驗收者並等待結論，不再要求使用者下達驗收指示。
 
 Gate 1 的 diff 起點是 issue branch 的起點；後續 Gate 是上一個 PASS commit。將起點解析為
 固定 SHA，不以會移動的 branch 名稱代替。交接後至結論核對完成，A 暫停修改受驗 worktree。
 
 ## 3. 獨立驗收
 
-每次開發或返工交接完成後，自動啟動使用者指定的 Agent B 驗收目前 Gate。若使用者指定 agent
-類型，每次驗收建立該類型的新 session；若指定既有 session／terminal，使用該唯一目標。若 B
-與 A 是同一種 agent、曾參與目前 Gate 開發、無法取得、目標不再唯一，或指定的既有目標不在
-該 issue worktree，回報後停止並請使用者重新指定，不自行替換。
+每次開發或返工交接完成後，自動啟動使用者指定的 Agent B 驗收。每次驗收都從空白對話開始：
+指定 agent 類型時，建立該類型的新 session；指定既有 session／terminal 時，使用該唯一目標，
+並在交接前於其中開新對話（例如 Claude 的 `/clear`、Codex 的 `/new`），不帶先前 Gate 或
+前次驗收的脈絡。若 B 與 A 是同一種 agent、曾參與目前 Gate 開發、無法取得、無法開新對話、
+目標不再唯一，或指定的既有目標不在該 issue worktree，回報後停止並請使用者重新指定，
+不自行替換。
 
-若目前環境是 Orca，開發交接完成後，依 `$orchestration` 的即時指引建立 review Task，
-並以開發時核對的 issue worktree 完整 id／絕對路徑啟動獨立的 Agent B。
-派送前核對 Agent B terminal 所屬的 worktree 是該 issue worktree；從原 worktree 發出
-指令時，明確指定此目標，不以原 session 的 `active`／`current` 推測。
-啟動成功（含 input 已寫入或 TUI idle）只表示終端與交接文字已就位。
-接著讀 Agent B 畫面，確認它已開始處理這次交接；停在未送出的輸入框時，依
-`$orca-cli` 送出該則交接並再核對一次。確認開始後才等待 `worker_done`，並依
-即時指引釋放 Agent B worker。交接已寫入但無法送出時（例如 terminal 已被使用
-者接管），回報後停止並請使用者重新指定 Agent B。
-不得用非 Orca 的協作工具冒充 Orca orchestration。其他環境使用其可用的獨立
-agent／session 機制，同樣要確認 B 已開始處理交接後才等待結論。無法取得獨立
+terminal 在 Orca 內時，依 [references/orca.md](references/orca.md) 派送 Agent B。其他環境使用
+可用的獨立 agent／session 機制，同樣確認 B 已開始處理交接後才等待結論。無法取得獨立
 驗收者時回報後停止，不得由開發者切換身份驗收自己。
 
-B 在開始與結束驗收時核對交接的 issue／Gate、base／head SHA、worktree 及工作目錄狀態；
-結論附上同一組識別與 B 的 agent 類型、session／terminal。必要測試產生的檔案須可辨識、
-隔離於交付內容之外；只清理由本次測試明確產生的變動，來源不明者保留並釐清。驗收成果仍須
-保持乾淨且與交接一致；head 相同不能取代內容核對。
-
-驗收者只讀 issue、issue 留言、目前 Gate、這次 diff、必要的相關代碼與下述源頭，依適用的
-repo 指令，逐項核對驗收條件與實際證據，確認測試能攔截相關錯誤，並檢查受影響的既有行為。
-測試應透過核准的公開介面驗證行為；內部呼叫次數、重述實作的斷言不能取代行為證據。
-依實際風險、成本與效益選擇適用的錯誤路徑、邊界條件、相容性與安全性檢查，不擴大至無關
-重構或未來需求。不必重跑全部測試；「測試全過」的摘要或工具執行成功本身不足以證明驗收
-條件成立。
-
-驗收者把開發者的交接與說法當成待查的說法，證據只採用源頭：自己讀到的代碼與 diff、自己
-重跑的結果、真實執行時由程式自動留下的紀錄，以及使用者親自回報並記入 issue 的結果。
-開發者寫的摘要、副本與自製樣本只當找到源頭的線索。
-
-驗收條件依賴外部服務的真實行為時，自製樣本只證明程式邏輯；外部服務本身的行為要以受驗
-版本實際對它成功執行的紀錄為證。驗收者親自讀這筆紀錄，核對結果、時間與受驗版本相符；
-結論只寫核對結果，不抄錄紀錄中的敏感值。驗收者預設不登入外部服務、不寫入正式資料；找不到
-源頭，或條件只能由人看真值確認時，回報驗收受阻並寫明要使用者核對什麼。
-依 issue 指定的驗收層級採證：本機／emulator 結果不能冒充真實服務成功；原定只驗本機的
-Gate 也不擴大成正式環境操作。B 的 PASS 不取代專案規定的需求、設計或技術決定者核准。
-
-驗收者不修改受驗檔案、不 stage、不 commit，也不更新 GitHub issue。最後只給一個結論：
-
-- `PASS`：目前 Gate 已滿足需求，必要驗證完成且證據充分；不適用的驗證已說明理由。
-- `TRIM`：目前 Gate 做太多；明確指出超出範圍、應刪除或簡化的部分。
-- `REWORK`：已證實的必要行為缺少、錯誤或測試失敗（含受影響既有行為的回歸）；明確指出
-  問題與證據，不提供實作方案。
-- `驗收受阻`：必要驗證未完成或證據不足，尚無法判定；列出缺少的驗證／證據、原因與恢復條件，
-  不得 PASS，也不以尚未證實的程式缺陷回報 REWORK。
-
-一個結論可以列出多個直接相關的問題。忽略 nice-to-have、未來重構與無關觀察。回報後停止；
-協調／開發 agent 依下一節記錄並接續或停止。使用 Orca 時，完成審查並回報上述任一結論，代表
-review Task 已完成，`worker_done` 的 outcome 為 `succeeded`；驗收結論寫在訊息主旨或內文。
-這只表示審查工作完成，不等於 Gate PASS；worker 本身未能完成審查時才回報執行失敗。
+B 依 [references/reviewer.md](references/reviewer.md) 驗收；該檔是驗收步驟、證據源頭與
+四種結論（`PASS`、`TRIM`、`REWORK`、`驗收受阻`）的唯一來源，Agent A 準備交接與核對結論
+前也讀它。B 收到的只有一句話 prompt 與 issue 上的紀錄；開發過程的對話與推論留在 Agent A。
+B 回報結論後停止，由 Agent A 依下一節記錄並接續或停止。
 
 ## 4. 記錄結論與接續 Gate
 
 協調者先核對結論與交接的 issue／Gate、base／head、B 身分及受驗 worktree 狀態。
-任一不符（包括 head 相同卻有未提交的受驗內容變更），舊結論不得套用或接續；依下段記錄
-差異並保留現況，釐清範圍與變更來源，完成適用修正／驗證後，以新交接重新驗收，不沿用舊 PASS。
+B 回報識別不符而未給結論時，也依本段處理。任一不符（包括 head 相同卻有未提交的受驗
+內容變更），舊結論不得套用或接續；依下段記錄差異並保留現況，釐清範圍與變更來源，完成
+適用修正／驗證後，以新交接重新驗收，不沿用舊 PASS。
 
 每次結論（含 PASS、退件與受阻）皆先由協調者寫入 issue 留言：上述識別、B 的原始結論、
-驗收條件與證據、重跑或採用的驗證及來源、未驗證／不適用項目與理由。必要驗證缺漏仍屬
+依編號列出的驗收條件判斷與證據、重跑或採用的驗證及來源、未驗證／不適用項目與理由。必要驗證缺漏仍屬
 驗收受阻，不能只列為「未驗證」便放行。A 在交接前發現受阻時，記錄當時版本與已有證據，
 明示尚未交由 B 驗收，不虛構 B 的身分或結論。任何必要 issue 紀錄寫入失敗都停止接力。
 
@@ -189,32 +157,41 @@ review Task 已完成，`worker_done` 的 outcome 為 `succeeded`；驗收結論
   worktree，依第 2 節開發、驗證、commit 與交接後自動再次驗收，不另問使用者是否開始。
   若這是最後一個 Gate，先完成本節的最終整合驗收；只有最終 PASS 紀錄完成才進入第 5 節。
 - `驗收受阻`：Gate 保持未勾選，在上述紀錄補上缺少的驗證／證據、原因與恢復條件，停止
-  自動接力，不進入下一 Gate，也不增加或重置既有連續 REWORK 次數。恢復條件成立後，補齊
-  必要驗證與交接，再由 B 驗收同一 Gate；不得因阻礙消失直接 PASS。
+  自動接力，不進入下一 Gate，也不改變返工熔斷的計數。恢復條件成立後，補齊必要驗證與
+  交接，再由 B 驗收同一 Gate；不得因阻礙消失直接 PASS。
 - `TRIM`／`REWORK`：Gate 保持未勾選，在上述紀錄列明直接問題與證據，
   接著依下列退件迴圈處理，不等待使用者接受。
 
-開發者處理非 PASS 結論時，先核對問題是否確實屬於目前 Gate。若不合理，回報理由後停止。
-合理就只處理 issue 留言列出的問題。處理 `REWORK` 前，先判定問題的直接原因、影響範圍及
-既有驗證未攔截的原因，並在下一次交接中附上判定證據；證據不足時，明確回報尚未確定之處。
+開發者處理 `TRIM`／`REWORK` 時，逐條分流 B 列出的問題，並把分流結果記入 issue 留言：
+
+- **修正**：問題成立，且屬於目前 Gate（最終整合時為整張 issue）。
+- **反駁**：問題不成立或不屬於目前範圍；附源頭證據（代碼、diff、重跑結果或執行紀錄），
+  只有理由不算反駁。
+
+全部為修正時，只處理這些問題並自動接續；有任一反駁時，在修改前停止，逐條回報 B 的證據與
+A 的反證，等待使用者決定。處理 `REWORK` 前，先判定問題的直接原因、影響範圍及既有驗證
+未攔截的原因，並在下一次交接中附上判定證據；證據不足時，明確回報尚未確定之處。
 
 若問題涉及高風險或嚴重缺陷（如安全、資安、資料損失、正式環境或核心功能）、顯示流程性
-缺口、與既有問題相似，或同一 Gate 收到第二次連續且確認合理的 `REWORK`，則在再次修改前
+缺口、與既有問題相似，或同一 Gate 累計收到第二次確認合理的 `REWORK`，則在再次修改前
 進行無責備的根因分析，並把已確認的原因與促成因素、證據、既有驗證漏接原因及預防再發措施
 記錄為 issue 留言。分析深度與實際風險、成本及效益相稱。
 
 根因分析不擴大目前 Gate 的實作範圍；新增的預防措施若超出 issue 留言列出的問題，回報並等待
 使用者決定。完成適用驗證、commit 與交接後，自動重新驗收。
 
-### 連續 REWORK 熔斷
+### 返工熔斷
 
-協調者按同一 Gate 的驗收順序記錄連續 `REWORK` 次數；`PASS`、`TRIM` 或進入下一 Gate 後歸零。
-`TRIM` 與未達熔斷條件的 `REWORK` 都自動接受、記錄、處理並重新驗收：
+協調者按同一 Gate 的驗收順序累計 `REWORK` 次數與退件次數（`TRIM` 加 `REWORK`）；兩者只在
+`PASS` 或進入下一 Gate 後歸零，`TRIM` 不使 `REWORK` 次數歸零，驗收受阻兩者都不計。未達
+停止條件的 `TRIM` 與 `REWORK` 都自動接受、記錄、處理並重新驗收：
 
+- `TRIM`：依前述規則自動處理，計入退件次數。
 - 第一次 `REWORK`：依前述規則自動處理。
-- 第二次連續 `REWORK`：完成前述根因分析後，允許一次有證據支持的修正與重新驗收。
-- 第三次連續 `REWORK`：立即停止自動返工。回報每次受驗 commit、退件問題、已做修正、驗證、
-  根因分析與仍未確定之處，等待使用者決定是修改 Gate／issue、指定處理方向或終止工作。
+- 第二次 `REWORK`：先完成前述根因分析，再做有證據支持的修正並重新驗收。
+- 第三次 `REWORK`，或第四次退件：立即停止自動返工，本次問題只記錄、不分流也不修改。回報
+  每次受驗 commit、退件問題、已做修正、驗證、根因分析與仍未確定之處，等待使用者決定是
+  修改 Gate／issue、指定處理方向或終止工作。
 
 同一問題在根因分析後再次出現，視為已達停止條件，不以改寫程式、換驗收者或拆成新問題重置
 計數。驗收結論無法明確對應目前 Gate 與受驗 commit 時也停止，不把不確定結論帶入自動返工。
@@ -223,13 +200,15 @@ review Task 已完成，`worker_done` 的 outcome 為 `succeeded`；驗收結論
 
 逐 Gate 驗收之外，最後自動啟動 B 驗收整張 issue。可與最後 Gate 的驗收合併，但交接與結論
 須明列：全部 Gate 的驗收條件、從 issue branch 起點 SHA 到最終 head SHA 的累積 diff、
-跨 Gate 互動與受影響的既有功能；不能只看最後 Gate 的增量。必要文件及相關 commits 都須
+跨 Gate 互動、受影響的既有功能、返工累積的多餘代碼，以及文件與實作是否一致；不能只看
+最後 Gate 的增量。必要文件及相關 commits 都須
 先完成。另記錄預計合併的預設 branch 與當時 SHA，供結案時核對目標變動。
 
 整合驗收與後續補驗歸最後 Gate 管理，範圍是整張 issue；跨 Gate 回歸屬此次返工範圍，不能
 因較早 Gate 曾 PASS 而排除。沿用本節的版本核對、證據紀錄、受阻／退件／根因分析與熔斷
-流程及最後 Gate 的連續 REWORK 計數，不另開 Gate 重置次數。未通過時，最後 Gate 保持或
-恢復未勾選，保留歷史 PASS 紀錄並標明目前最終 PASS 尚未成立／已失效；不得結案。
+流程及最後 Gate 的返工計數：最後 Gate 單獨驗收的 PASS 照常歸零，其後整合驗收的退件接續
+累計到最終 PASS，不另開 Gate 重置次數。未通過時，最後 Gate 保持或恢復未勾選，
+保留歷史 PASS 紀錄並標明目前最終 PASS 尚未成立／已失效；不得結案。
 合理的 TRIM／REWORK 自動修正、驗證、commit 並重新交接；受阻則依恢復條件補證據再驗收。
 
 最終 PASS 後，由協調者依本節保存整體驗收證據、累積 diff base、最終受驗 head 與目標
@@ -239,67 +218,6 @@ branch／SHA，並同步最後 Gate 的 PASS commit。其後若新增變更，�
 
 ## 5. 交付與結案
 
-依專案規則與 issue 選定交付模式；未指定時預設「直接合併」。最終整合 PASS、必要文件與
-證據備妥後，核對專案所需核准與既有授權。尚缺授權時，才按所選模式一次列明具體動作及
-已知 CI／部署效果請使用者核准；已明確授權的相同範圍沿用，不重複確認。
-
-兩種模式都先核對受驗 worktree 乾淨、head 等於最終受驗 SHA，並取得目標分支最新遠端狀態
-（例如 fetch 後核對 SHA），不能只憑舊的 remote-tracking ref。將最新目標與最終驗收記錄
-比對；若已變動，先完成影響檢查與適用驗證並保存證據。若需依專案規則同步目標分支、補文件
-或修改 issue branch，依第 4 節使最終 PASS 失效並交由 B 補驗新 head，再更新紀錄。
-版本無法確認、驗證受阻或失敗、有衝突時，保留現況並停止交付。
-
-### 直接合併（預設）
-
-尚未取得結案授權時，可用以下問題列明範圍，並補上實際會觸發的 CI／部署：
-
-> 所有 Gate 與最終整合驗收已 PASS。是否執行結案收尾（核對最終受驗版本與最新目標分支、
-> 合併回預設 branch、合併後驗證、push 預設 branch、清除 issue worktree／本機 branch、關閉 issue）？
-
-取得明確授權後才依序執行；超出已核准需求的工作仍先交由使用者決定。
-
-1. 核對預設 branch worktree 乾淨，合併目標確為預設 branch，且包含前述最新遠端內容。
-2. 將已驗收的 issue branch 合併回已核對的預設 branch；合併衝突就停止並回報。以父提交／
-   ancestry 與內容差異確認合併結果確實包含已驗收成果，並記錄 issue head 與合併結果 SHA。
-   正常 merge commit 可有不同 SHA，不因此當作未驗收的開發 commit；除已核對的目標與
-   受驗 issue 內容外，若另有修改，依第 4 節補驗，不得用合併掩蓋未驗收內容。
-3. 在合併後的預設 branch 執行適用驗證，將結果記入 issue；成功後才 push 預設 branch。
-   合併後驗證或 push 失敗時，保留 issue 開啟及 issue worktree／branch，停止並回報。
-4. 確認 push 成功且 issue worktree 乾淨後，移除該 worktree，並安全刪除已合併的本機 issue
-   branch。清理未完整成功時保留 GitHub issue 開啟並回報實際狀態。
-5. 前述步驟全數成功後關閉 GitHub issue，回報最終受驗 SHA、合併結果 SHA、push、驗證、
-   文件變更、清理與 issue 狀態。
-
-推送 issue branch、force-push、建立 PR 或刪除 remote branch 不包含在這項授權內，仍須另行
-取得使用者或專案規則的明確授權。
-
-### PR 交付
-
-此模式交由專案指定的人合併；所需的 issue branch push、建立／更新 PR 與預覽部署，沿用
-專案或使用者已給的明確授權。未授權部分在操作前列明請求，不套用「直接合併」的結案問題。
-
-1. 完成前述版本與目標核對後，push 已驗收的 issue branch，建立或更新同一張 PR。記錄
-   PR 連結、最終受驗 SHA、目標分支與驗證證據，以及尚待指定決定者確認的事項。
-2. 核對遠端 branch／PR head 與受驗版本一致；專案要求預覽時，確認對應受驗 head 的部署
-   結果並提供連結。失敗時保留 issue、branch 與 worktree，回報實際狀態。
-   PR 交付成功後，記錄「已交付，待合併」
-   並附 PR 連結；issue 保持開啟，branch／worktree 保留供後續修正。
-3. 合併由指定合併者執行；使用者要求代為合併時，該要求即授權這次合併。合併前核對 PR head
-   仍等於最終受驗 SHA，依專案規則或 repo 既有慣例選合併方式，刪除 branch 留到第 4 步。
-   合併後 fetch，核對 PR 已合併且合併結果包含受驗成果：merge commit 以 ancestry 核對，
-   squash／rebase 以內容差異核對。在合併後的預設 branch 執行適用驗證，把 PR 連結、合併
-   結果 SHA 與驗證結果記入 issue；受驗內容有變更時，依第 4 節補驗後才清理。
-4. 清理需要結案授權；尚未取得時，列明會執行的動作請使用者核准，例如：
-
-   > PR #<編號> 已合併並驗證。是否執行結案收尾（以 fast-forward 更新本機預設 branch、
-   > 移除 issue worktree、刪除本機與遠端 issue branch、關閉 issue）？
-
-   取得授權後依序執行；清理未完整成功時保留 GitHub issue 開啟並回報實際狀態。
-   1. 本機預設 branch 乾淨時，以 fast-forward 更新到合併結果。
-   2. issue worktree 乾淨時移除。
-   3. 安全刪除本機 issue branch；squash／rebase 合併使安全刪除被拒時，保留 branch 並請
-      使用者決定。
-   4. 刪除遠端 issue branch；repo 設定合併後自動刪除時，只核對已刪除。
-   5. issue 未被 PR 自動關閉時關閉它，回報合併結果 SHA、驗證、清理與 issue 狀態。
-
-PR 建立、更新或技術 PASS 本身都不授權合併、push 預設 branch、force-push 或刪除 branch。
+處理本 issue 的 push、合併、PR 或 worktree／branch 清理時，先讀
+[references/delivery.md](references/delivery.md)，依其核對與授權規則執行；只有最終整合
+PASS 紀錄完成後才交付，在此之前收到這類要求時，說明最終 PASS 尚未成立。
