@@ -44,3 +44,4 @@ Agent B 情境改成只讀 `references/reviewer.md`，身分是 Agent B。
 | --- | --- | --- | --- | --- | --- |
 | 2026-10-27 | `8e9f5b5` | Claude Opus 5.5 subagent／同左 | A4、A6、A8、A10、A12、B1 | 6/6 通過 | 只測 Claude，Codex 未測。A6 初跑因情境沒寫 A 的類型而停止（測試題漏洞，已補 A 類型後重跑通過）。A8 指出熔斷時是否分流不明，已在熔斷規則寫明。 |
 | 2026-10-27 | `feat/draft-reviewer` 的工作區 | Claude Opus 5.5 subagent | A5、A5b | 2/2 通過 | 新增「可指定草稿審查者」規則後重跑受影響情境；只測 Claude。 |
+| 2026-11-02 | `issue/3-dev-regression-once` 的工作區 | Claude Opus 5.5 subagent；Codex（codex-cli 0.166.0，`codex exec`） | A1、A2、A12、A17、A18 | Claude 5/5、Codex 5/5 通過 | 新增「整批回歸只在交接前跑一次」規則。Codex 的 A1 第一次沒讀到檔（自動核准把「不要執行任何指令」當成禁止讀檔），重跑後通過。對照：用修改前的 SKILL.md 跑 A17、A18（Claude）。A17 已只跑一次整批，但修正後要對新 head 再跑整批；A18 沒提出單獨重跑，可能記成驗收受阻後停止。 |
